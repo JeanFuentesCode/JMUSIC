@@ -10,38 +10,31 @@ async function searchMusic(query) {
   const cachedResult = searchCache.get(cacheKey);
 
   if (cachedResult) {
-    console.log(`[ONYX] [CACHE HIT] Respuesta servida desde memoria: "${query}"`);
     return cachedResult;
   }
 
-  console.log(`[ONYX] [CACHE MISS] Solicitud no almacenada. Buscando: "${query}"`);
-
-  // 1. Intento principal: YouTube API Key 1
+  // 1. Intento principal: Key 1
   try {
-    console.log('[ONYX] [PRIMARY] Ejecutando búsqueda vía YouTube Data API (Key 1)...');
     const result = await fetchYouTubeAPI(query, process.env.YOUTUBE_API_KEY_1);
     searchCache.set(cacheKey, result);
-    console.log('[ONYX] [SEARCH SUCCESS] Búsqueda procesada vía Key 1 y almacenada en caché.');
     return result;
 
   } catch (error1) {
-    console.warn(`[ONYX] [API WARNING] Key 1 inoperativa/agotada (${error1.message}). Activando Key 2...`);
+    console.warn(`[ONYX] [FALLBACK] Key 1 inoperativa (${error1.message}). Activando Key 2...`);
 
-    // 2. Primer respaldo: YouTube API Key 2
+    // 2. Respaldo: Key 2
     try {
       const result = await fetchYouTubeAPI(query, process.env.YOUTUBE_API_KEY_2);
       searchCache.set(cacheKey, result);
-      console.log('[ONYX] [SEARCH SUCCESS] Búsqueda procesada vía Key 2 y almacenada en caché.');
       return result;
 
     } catch (error2) {
-      console.warn(`[ONYX] [FALLBACK AMBIENTE] Key 2 inoperativa/agotada (${error2.message}). Activando motor local yt-dlp...`);
+      console.warn(`[ONYX] [FALLBACK CRÍTICO] Key 2 inoperativa (${error2.message}). Activando yt-dlp...`);
 
       // 3. Respaldo final: yt-dlp
       try {
         const result = await searchWithYtDlp(query);
         searchCache.set(cacheKey, result);
-        console.log('[ONYX] [FALLBACK SUCCESS] Búsqueda procesada vía motor local yt-dlp.');
         return result;
 
       } catch (ytdlpError) {
@@ -87,7 +80,7 @@ async function fetchYouTubeAPI(query, apiKey) {
       durationMap[v.id] = parseISO8601Duration(v.contentDetails.duration);
     });
   } catch (err) {
-    console.warn('[ONYX] [API WARNING] No se pudo resolver la metadata detallada de duración.');
+    console.warn('[ONYX] [API WARNING] No se pudo resolver la metadata de duración.');
   }
 
   return items.map(item => ({
