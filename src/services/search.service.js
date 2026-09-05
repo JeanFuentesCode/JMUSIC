@@ -16,30 +16,36 @@ async function searchMusic(query) {
 
   console.log(`[ONYX] [CACHE MISS] Solicitud no almacenada. Buscando: "${query}"`);
 
+  // 1. Intento principal: YouTube API Key 1
   try {
-    const result = await searchWithYtDlp(query);
+    console.log('[ONYX] [PRIMARY] Ejecutando búsqueda vía YouTube Data API (Key 1)...');
+    const result = await fetchYouTubeAPI(query, process.env.YOUTUBE_API_KEY_1);
     searchCache.set(cacheKey, result);
-    console.log(`[ONYX] [SEARCH SUCCESS] Búsqueda procesada vía yt-dlp y almacenada en caché.`);
+    console.log('[ONYX] [SEARCH SUCCESS] Búsqueda procesada vía Key 1 y almacenada en caché.');
     return result;
 
-  } catch (ytdlpError) {
-    console.warn('[ONYX] [FALLBACK AMBIENTE] Motor principal no disponible. Activando YouTube Data API (Key 1)...');
-    
+  } catch (error1) {
+    console.warn(`[ONYX] [API WARNING] Key 1 inoperativa/agotada (${error1.message}). Activando Key 2...`);
+
+    // 2. Primer respaldo: YouTube API Key 2
     try {
-      const result = await fetchYouTubeAPI(query, process.env.YOUTUBE_API_KEY_1);
+      const result = await fetchYouTubeAPI(query, process.env.YOUTUBE_API_KEY_2);
       searchCache.set(cacheKey, result);
-      console.log(`[ONYX] [FALLBACK SUCCESS] Búsqueda procesada vía YouTube API (Key 1).`);
+      console.log('[ONYX] [SEARCH SUCCESS] Búsqueda procesada vía Key 2 y almacenada en caché.');
       return result;
-    } catch (error1) {
-      console.warn('[ONYX] [FALLBACK CRÍTICO] Key 1 agotada/inoperativa. Activando YouTube Data API (Key 2)...');
-      
+
+    } catch (error2) {
+      console.warn(`[ONYX] [FALLBACK AMBIENTE] Key 2 inoperativa/agotada (${error2.message}). Activando motor local yt-dlp...`);
+
+      // 3. Respaldo final: yt-dlp
       try {
-        const result = await fetchYouTubeAPI(query, process.env.YOUTUBE_API_KEY_2);
+        const result = await searchWithYtDlp(query);
         searchCache.set(cacheKey, result);
-        console.log(`[ONYX] [FALLBACK SUCCESS] Búsqueda procesada vía YouTube API (Key 2).`);
+        console.log('[ONYX] [FALLBACK SUCCESS] Búsqueda procesada vía motor local yt-dlp.');
         return result;
-      } catch (error2) {
-        console.error('[ONYX] [SEARCH FATAL] Todos los métodos y fallbacks de búsqueda fallaron.');
+
+      } catch (ytdlpError) {
+        console.error('[ONYX] [SEARCH FATAL] Todos los proveedores de búsqueda fallaron.');
         throw new Error('Servicio de búsqueda no disponible en ningún proveedor.');
       }
     }
@@ -47,6 +53,10 @@ async function searchMusic(query) {
 }
 
 async function fetchYouTubeAPI(query, apiKey) {
+  if (!apiKey) {
+    throw new Error('API Key no configurada');
+  }
+
   const searchResponse = await axios.get(YOUTUBE_SEARCH_URL, {
     params: {
       part: 'snippet',
