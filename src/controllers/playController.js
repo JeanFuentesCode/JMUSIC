@@ -2,7 +2,7 @@ const ytdl = require('@distube/ytdl-core');
 
 /**
  * Controlador de la ruta POST /play.
- * Obtiene la información del video y descifra la firma de audio para cualquier canción.
+ * Configura los clientes móviles (iOS y Android) para omitir la detección de bots en Render.
  */
 async function handlePlayRequest(req, res) {
   try {
@@ -16,7 +16,11 @@ async function handlePlayRequest(req, res) {
     }
 
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    const info = await ytdl.getInfo(videoUrl);
+
+    // Forzamos el uso de clientes móviles (IOS, ANDROID) para evadir la detección anti-bot de la IP de Render
+    const info = await ytdl.getInfo(videoUrl, {
+      playerClients: ['IOS', 'ANDROID']
+    });
 
     // Filtrar solo formatos de audio
     const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
