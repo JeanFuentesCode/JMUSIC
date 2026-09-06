@@ -17,7 +17,6 @@ router.get('/health', (req, res) => {
 router.get('/search', handleSearch);
 
 // Proxy de extracción de datos de transmisión
-// Proxy de extracción de datos de transmisión
 router.post('/yt-proxy/player', async (req, res) => {
   const { videoId } = req.body;
 
@@ -33,17 +32,14 @@ router.post('/yt-proxy/player', async (req, res) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'com.google.ios.youtube/19.45.4 (iPhone14,3; U; CPU iOS 17_5_1 like Mac OS X; es_US)'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
       },
       body: JSON.stringify({
         videoId: videoId,
         context: {
           client: {
-            clientName: 'IOS',
-            clientVersion: '19.45.4',
-            deviceModel: 'iPhone14,3',
-            osName: 'iOS',
-            osVersion: '17.5.1.21F90',
+            clientName: 'WEB_EMBEDDED_PLAYER',
+            clientVersion: '1.20240212.01.01',
             hl: 'es',
             gl: 'US'
           }
