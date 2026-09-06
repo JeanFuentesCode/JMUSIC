@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const routes = require('./routes');
+const playRoutes = require('./routes/playRoutes');
 
 const app = express();
 
@@ -43,6 +44,9 @@ const limiter = rateLimit({
 app.use(limiter);
 
 app.use(express.json());
+
+// Registro de rutas del sistema
 app.use('/', routes);
+app.use('/', playRoutes);
 
 module.exports = app;
