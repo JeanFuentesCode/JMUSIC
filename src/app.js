@@ -17,6 +17,7 @@ const allowedOrigins = [
   'https://hoppscotch.io',
   'http://localhost:3000',
   'http://localhost:5173'
+  'https://jmusic1.vercel.app/'
 ];
 
 app.use(cors({
