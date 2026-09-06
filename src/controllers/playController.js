@@ -1,8 +1,62 @@
-const ytdl = require('@distube/ytdl-core');
+/**
+ * Extrae la URL de audio con mayor bitrate que tenga URL directa.
+ */
+function extractBestAudioUrl(streamingData) {
+  if (!streamingData || !Array.isArray(streamingData.adaptiveFormats)) {
+    return null;
+  }
+
+  const audioFormats = streamingData.adaptiveFormats.filter(
+    (format) => format.mimeType && format.mimeType.startsWith('audio/') && format.url
+  );
+
+  if (audioFormats.length === 0) {
+    return null;
+  }
+
+  audioFormats.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+
+  return audioFormats[0].url;
+}
+
+/**
+ * Consulta la API de YouTube usando clientes internos para omitir la detección anti-bot.
+ */
+async function fetchAudioFromYouTube(videoId) {
+  const clients = [
+    { clientName: 'ANDROID_VR', clientVersion: '1.60.19' },
+    { clientName: 'ANDROID_EMBEDDED_PLAYER', clientVersion: '17.50.2' },
+    { clientName: 'IOS', clientVersion: '19.08.2' },
+    { clientName: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER', clientVersion: '2.0' }
+  ];
+
+  for (const client of clients) {
+    try {
+      const response = await fetch('https://www.youtube.com/youtubei/v1/player', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoId: videoId,
+          context: { client }
+        })
+      });
+
+      if (!response.ok) continue;
+
+      const data = await response.json();
+      const audioUrl = extractBestAudioUrl(data.streamingData);
+
+      if (audioUrl) return audioUrl;
+    } catch (error) {
+      // Continúa con el siguiente cliente en la lista
+    }
+  }
+
+  return null;
+}
 
 /**
  * Controlador de la ruta POST /play.
- * Configura los clientes móviles (iOS y Android) para omitir la detección de bots en Render.
  */
 async function handlePlayRequest(req, res) {
   try {
@@ -15,29 +69,18 @@ async function handlePlayRequest(req, res) {
       });
     }
 
-    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const audioUrl = await fetchAudioFromYouTube(videoId);
 
-    // Forzamos el uso de clientes móviles (IOS, ANDROID) para evadir la detección anti-bot de la IP de Render
-    const info = await ytdl.getInfo(videoUrl, {
-      playerClients: ['IOS', 'ANDROID']
-    });
-
-    // Filtrar solo formatos de audio
-    const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-
-    if (!audioFormats || audioFormats.length === 0) {
+    if (!audioUrl) {
       return res.status(404).json({
         success: false,
-        error: 'No se encontró ningún formato de audio válido para este video.'
+        error: 'No se encontró una dirección de audio directa para este video.'
       });
     }
 
-    // Ordenar de mayor a menor bitrate
-    audioFormats.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-
     return res.status(200).json({
       success: true,
-      audioUrl: audioFormats[0].url
+      audioUrl: audioUrl
     });
   } catch (error) {
     return res.status(500).json({
