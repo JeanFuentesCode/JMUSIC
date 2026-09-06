@@ -32,14 +32,18 @@ router.post('/yt-proxy/player', async (req, res) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Android; TV; HaystackNews/3.8.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.181 Mobile Safari/537.36',
+        'Referer': 'https://www.youtube.com/'
       },
       body: JSON.stringify({
         videoId: videoId,
         context: {
           client: {
-            clientName: 'WEB_EMBEDDED_PLAYER',
-            clientVersion: '1.20240212.01.01',
+            clientName: 'ANDROID_VR',
+            clientVersion: '1.59.19',
+            deviceModel: 'Oculus Quest 2',
+            osName: 'Android',
+            osVersion: '10',
             hl: 'es',
             gl: 'US'
           }
@@ -54,6 +58,15 @@ router.post('/yt-proxy/player', async (req, res) => {
         success: false,
         error: 'YouTube rechazó la solicitud.',
         details: data
+      });
+    }
+
+    // Validar si la reproducibilidad fue aprobada por YouTube
+    if (data.playabilityStatus && data.playabilityStatus.status !== 'OK') {
+      return res.status(400).json({
+        success: false,
+        error: data.playabilityStatus.reason || 'El video no está disponible.',
+        details: data.playabilityStatus
       });
     }
 
